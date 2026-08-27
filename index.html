@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827"><title>Corte Bazares</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.app{max-width:720px;margin:auto;padding:18px 15px 50px}
+h1{font-size:30px;margin:4px 0}.muted{color:#6b7280}.card{background:#fff;border-radius:18px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #0000000d}h2{font-size:20px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{font-size:14px;font-weight:700;display:block;margin:10px 0 6px}
+input,textarea,button{font:inherit}input,textarea{width:100%;border:1px solid #d1d5db;border-radius:12px;padding:12px;background:#fff}textarea{min-height:75px}.money{font-size:18px;font-weight:700}
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #eee}.row:last-child{border:0}.big{font-size:24px;font-weight:800}
+.btn{border:0;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer}.primary{background:#111827;color:#fff;width:100%}.secondary{background:#e5e7eb}.danger{background:#fee2e2;color:#991b1b}.actions{display:flex;gap:8px}.actions .btn{flex:1}
+.positive{color:#15803d}.negative{color:#dc2626}.neutral{color:#374151}.small{font-size:13px}.event{padding:14px 0;border-bottom:1px solid #eee}.event:last-child{border:0}
+.day{background:#f9fafb;border-radius:14px;padding:13px;margin:9px 0}.dayhead{display:flex;justify-content:space-between;gap:8px}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:12px;font-weight:700}
+.denom{display:grid;grid-template-columns:1fr 1fr;gap:10px}.denomItem{display:flex;align-items:center;gap:8px}.denomItem span{min-width:55px;font-weight:700}.denomItem input{max-width:100px}
+.expense{display:grid;grid-template-columns:1fr 110px 42px;gap:8px;margin:8px 0}.expense button{padding:8px}.hidden{display:none}.notice{padding:12px;border-radius:12px;background:#f9fafb;margin:10px 0}
+@media(max-width:480px){.grid,.denom{grid-template-columns:1fr}.expense{grid-template-columns:1fr 100px 42px}}
+</style>
+</head>
+<body><div class="app">
+<header><h1>💰 Corte Bazares</h1><div class="muted">Control de ventas y caja</div></header>
+
+<section id="home">
+<div class="card"><h2>Nuevo bazar</h2>
+<label>Nombre del bazar / evento</label><input id="eName" placeholder="Ej. Bazar Plaza Mayor">
+<label>Lugar / plaza</label><input id="ePlace" placeholder="Ej. Plaza Mayor, León">
+<div class="grid"><div><label>Fecha de inicio</label><input id="eStart" type="date"></div><div><label>Fecha de finalización</label><input id="eEnd" type="date"></div></div>
+<label>Descripción</label><textarea id="eDesc" placeholder="Detalles del evento"></textarea>
+<button class="btn primary" onclick="createEvent()">+ Crear bazar</button></div>
+<div class="card"><h2>📋 Mis bazares</h2><div id="events"></div></div>
+</section>
+
+<section id="eventView" class="hidden">
+<div class="actions"><button class="btn secondary" onclick="showHome()">← Mis bazares</button><button class="btn danger" onclick="deleteEvent()">Eliminar bazar</button></div>
+<div class="card"><h2 id="eventTitle"></h2><div id="eventMeta" class="muted"></div><p id="eventDesc"></p></div>
+<div class="card"><h2>📅 Cortes diarios</h2><button class="btn primary" onclick="newCut()">+ Nuevo corte</button><div id="days"></div></div>
+<div class="card"><h2>📊 Resumen del bazar</h2><div id="summary"></div></div>
+</section>
+
+<section id="cutView" class="hidden">
+<div class="actions"><button class="btn secondary" onclick="backEvent()">← Volver</button></div>
+<div class="card"><h2 id="cutTitle">Corte diario</h2>
+<div class="grid"><div><label>Fecha</label><input id="cDate" type="date"></div><div><label>Día del evento</label><input id="cDay" type="number" min="1" step="1" placeholder="1"></div></div>
+<label>Descripción del día</label><textarea id="cDesc" placeholder="Observaciones del día"></textarea>
+<h2 style="margin-top:18px">💰 Ventas</h2>
+<label>Saldo inicial de caja</label><input id="cInitial" class="money" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+<div class="grid"><div><label>💵 Efectivo</label><input id="cCash" class="money calc" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div><div><label>🏦 Transferencia</label><input id="cTransfer" class="money calc" type="number" min="0" step="0.01" inputmode="decimal" value="0"></div></div>
+<label>💳 Tarjeta</label><input id="cCard" class="money calc" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+<div class="notice"><div class="row"><span>Ventas totales</span><strong id="sales" class="big">$0.00</strong></div></div>
+
+<h2 style="margin-top:18px">🧾 Gastos</h2><p class="muted small">Los gastos reducen el efectivo esperado de la caja.</p>
+<div id="expenses"></div><button class="btn secondary" onclick="addExpense()">+ Agregar gasto</button>
+<div class="row"><span>Total gastos</span><strong id="expenseTotal">$0.00</strong></div>
+
+<h2 style="margin-top:18px">🏧 Retiro de caja</h2><p class="muted small">Este retiro NO es un gasto. Es dinero que sacas de la caja para guardarlo aparte.</p>
+<label>Importe a retirar</label><input id="cWithdrawal" class="money calc" type="number" min="0" step="0.01" inputmode="decimal" value="0">
+<div class="notice"><div class="row"><span>Efectivo esperado final</span><strong id="expected" class="big">$0.00</strong></div></div>
+</div>
+
+<div class="card"><h2>💵 Arqueo de caja</h2><p class="muted small">Cuenta físicamente los billetes y monedas.</p><div id="denoms" class="denom"></div>
+<div class="row"><span>Efectivo contado</span><strong id="counted" class="big">$0.00</strong></div>
+<div class="row"><span>Diferencia</span><strong id="diff" class="big neutral">$0.00</strong></div>
+<button class="btn primary" onclick="saveCut()">💾 Guardar corte</button></div>
+</section>
+</div>
+
+<script>
+const DENOMS=[1000,500,200,100,50,20,10,5,2,1,.5,.2,.1];let data=JSON.parse(localStorage.getItem('cb_data')||'{"events":[]}'),currentEvent=null,currentCut=null;
+const $=id=>document.getElementById(id),money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(n)||0);
+function saveData(){localStorage.setItem('cb_data',JSON.stringify(data))}function show(id){['home','eventView','cutView'].forEach(x=>$(x).classList.add('hidden'));$(id).classList.remove('hidden')}
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function createEvent(){let name=$('eName').value.trim();if(!name)return alert('Escribe el nombre del bazar.');let e={id:Date.now().toString(),name,place:$('ePlace').value.trim(),start:$('eStart').value,end:$('eEnd').value,desc:$('eDesc').value.trim(),cuts:[]};data.events.unshift(e);saveData();openEvent(e.id)}
+function renderEvents(){let el=$('events');if(!data.events.length){el.innerHTML='<p class="muted">Todavía no tienes bazares registrados.</p>';return}el.innerHTML=data.events.map(e=>{let t=e.cuts.reduce((s,c)=>s+c.sales,0);return `<div class="event"><strong>${esc(e.name)}</strong><br><span class="muted">${esc(e.place||'Sin lugar')} · ${e.cuts.length} corte(s)</span><br><strong>${money(t)}</strong> en ventas<br><button class="btn secondary" style="margin-top:8px" onclick="openEvent('${e.id}')">Abrir bazar</button></div>`}).join('')}
+function showHome(){currentEvent=null;show('home');renderEvents()}function openEvent(id){currentEvent=data.events.find(e=>e.id===id);show('eventView');renderEvent()}
+function renderEvent(){$('eventTitle').textContent=currentEvent.name;$('eventMeta').textContent=`📍 ${currentEvent.place||'Sin lugar'} · ${currentEvent.start||'Sin fecha'}${currentEvent.end?' → '+currentEvent.end:''}`;$('eventDesc').textContent=currentEvent.desc||'';
+let days=$('days');if(!currentEvent.cuts.length)days.innerHTML='<p class="muted">No hay cortes todavía.</p>';else days.innerHTML=currentEvent.cuts.slice().sort((a,b)=>a.day-b.day).map(c=>`<div class="day"><div class="dayhead"><div><span class="pill">Día ${c.day}</span><br><strong>${c.date}</strong></div><div><strong>${money(c.sales)}</strong><br><span class="${c.diff>0?'positive':c.diff<0?'negative':'neutral'}">${c.diff>0?'Sobrante ':c.diff<0?'Faltante ':'Cuadrado '}${money(Math.abs(c.diff))}</span></div></div><div class="actions" style="margin-top:10px"><button class="btn secondary" onclick="editCut('${c.id}')">✏️ Editar</button><button class="btn danger" onclick="removeCut('${c.id}')">🗑️ Eliminar</button></div></div>`).join('');
+let total=currentEvent.cuts.reduce((s,c)=>s+c.sales,0),cash=currentEvent.cuts.reduce((s,c)=>s+c.cash,0),tr=currentEvent.cuts.reduce((s,c)=>s+c.transfer,0),card=currentEvent.cuts.reduce((s,c)=>s+c.card,0),exp=currentEvent.cuts.reduce((s,c)=>s+c.expenses,0),wd=currentEvent.cuts.reduce((s,c)=>s+c.withdrawal,0),d=currentEvent.cuts.reduce((s,c)=>s+c.diff,0);
+$('summary').innerHTML=`<div class="row"><span>Ventas totales</span><strong class="big">${money(total)}</strong></div><div class="row"><span>Efectivo</span><strong>${money(cash)}</strong></div><div class="row"><span>Transferencias</span><strong>${money(tr)}</strong></div><div class="row"><span>Tarjetas</span><strong>${money(card)}</strong></div><div class="row"><span>Gastos</span><strong>${money(exp)}</strong></div><div class="row"><span>Retiros</span><strong>${money(wd)}</strong></div><div class="row"><span>Promedio diario</span><strong>${money(currentEvent.cuts.length?total/currentEvent.cuts.length:0)}</strong></div><div class="row"><span>Diferencia acumulada</span><strong class="${d>0?'positive':d<0?'negative':'neutral'}">${money(d)}</strong></div>`}
+function deleteEvent(){if(confirm('¿Eliminar este bazar y todos sus cortes?')){data.events=data.events.filter(e=>e.id!==currentEvent.id);saveData();showHome()}}
+function setupDenoms(counts={}){$('denoms').innerHTML=DENOMS.map((d,i)=>`<div class="denomItem"><span>$${d<1?d.toFixed(2):d}</span><input id="dn${i}" type="number" min="0" step="1" value="${counts[d]||0}" inputmode="numeric"></div>`).join('')}
+function addExpense(item={concept:'',amount:0}){let wrap=document.createElement('div');wrap.className='expense';wrap.innerHTML=`<input class="expConcept" placeholder="Concepto" value="${esc(item.concept)}"><input class="expAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${item.amount||0}"><button class="btn danger" type="button">×</button>`;wrap.querySelector('button').onclick=()=>{wrap.remove();calcCut()};$('expenses').appendChild(wrap);wrap.querySelectorAll('input').forEach(x=>x.oninput=calcCut)}
+function fillCut(c){$('cDate').value=c.date||'';$('cDay').value=c.day||'';$('cDesc').value=c.desc||'';$('cInitial').value=c.initial||0;$('cCash').value=c.cash||0;$('cTransfer').value=c.transfer||0;$('cCard').value=c.card||0;$('cWithdrawal').value=c.withdrawal||0;$('expenses').innerHTML='';(c.expenseItems||[]).forEach(addExpense);setupDenoms(c.counts||{});document.querySelectorAll('#cutView input,#cutView textarea').forEach(x=>x.oninput=calcCut);calcCut()}
+function newCut(){currentCut=null;fillCut({date:new Date().toISOString().slice(0,10),day:currentEvent.cuts.length+1});show('cutView')}
+function editCut(id){currentCut=currentEvent.cuts.find(c=>c.id===id);fillCut(currentCut);show('cutView')}
+function calcCut(){let initial=+$('cInitial').value||0,cash=+$('cCash').value||0,tr=+$('cTransfer').value||0,card=+$('cCard').value||0,withdrawal=+$('cWithdrawal').value||0,expenses=0;document.querySelectorAll('.expAmount').forEach(x=>expenses+=+x.value||0);let sales=cash+tr+card,expected=initial+cash-expenses-withdrawal,counted=0;DENOMS.forEach((d,i)=>counted+=d*(+$('dn'+i)?.value||0));let diff=counted-expected;$('sales').textContent=money(sales);$('expenseTotal').textContent=money(expenses);$('expected').textContent=money(expected);$('counted').textContent=money(counted);$('diff').textContent=(diff>0?'Sobrante +':diff<0?'Faltante ':'')+money(Math.abs(diff));$('diff').className='big '+(diff>0?'positive':diff<0?'negative':'neutral');return{initial,cash,transfer:tr,card,sales,expenses,withdrawal,expected,counted,diff}}
+function saveCut(){let x=calcCut(),counts={},expenseItems=[];DENOMS.forEach((d,i)=>counts[d]=+$('dn'+i).value||0);document.querySelectorAll('.expense').forEach(w=>expenseItems.push({concept:w.querySelector('.expConcept').value.trim(),amount:+w.querySelector('.expAmount').value||0}));let c={id:currentCut?currentCut.id:Date.now().toString(),date:$('cDate').value,day:+$('cDay').value||0,desc:$('cDesc').value.trim(),...x,counts,expenseItems};if(currentCut)currentEvent.cuts[currentEvent.cuts.findIndex(z=>z.id===currentCut.id)]=c;else currentEvent.cuts.push(c);saveData();openEvent(currentEvent.id);alert('Corte guardado correctamente.')}
+function removeCut(id){if(confirm('¿Eliminar este corte?')){currentEvent.cuts=currentEvent.cuts.filter(c=>c.id!==id);saveData();renderEvent()}}
+function backEvent(){openEvent(currentEvent.id)}
+$('eStart').value=new Date().toISOString().slice(0,10);renderEvents();
+</script></body></html>
